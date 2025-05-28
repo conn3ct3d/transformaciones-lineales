@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transformaciones Lineares de Onda Senoidal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        canvas {
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            display: block;
+            margin: 20px auto;
+            background: #fafafa;
+            width: 100%;
+            height: auto;
+        }
+        @media (max-width: 600px) {
+    .controls {
+        grid-template-columns: 1fr;
+    }
+
+    button {
+        font-size: 13px;
+        padding: 8px;
+    }
+
+    .control-group {
+        padding: 10px;
+    }
+
+    h1 {
+        font-size: 20px;
+    }
+
+    .reset-btn {
+        font-size: 14px;
+        padding: 10px;
+    }
+
+    .transform-display {
+        font-size: 11px;
+    }
+
+    .info p {
+        font-size: 14px;
+    }
+}
+
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .control-group {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .control-group h3 {
+            margin: 0 0 10px 0;
+            color: #495057;
+            font-size: 16px;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 2px;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .reset-btn {
+            background: #dc3545;
+            grid-column: 1 / -1;
+            justify-self: center;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .reset-btn:hover {
+            background: #c82333;
+        }
+
+        .info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+            margin-top: 20px;
+        }
+
+        .info p {
+            margin: 5px 0;
+            color: #495057;
+        }
+
+        .transform-display {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 10px;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Transformaciones lineales en una onda Senoidal</h1>
+        
+        <canvas id="canvas" width="800" height="400"></canvas>
+        
+        <div class="controls">
+            <div class="control-group">
+                <h3>🔄 Rotacion</h3>
+                <button onclick="rotate(15)">Rotar +15°</button>
+                <button onclick="rotate(-15)">Rotar -15°</button>
+                <button onclick="rotate(45)">Rotar +45°</button>
+                <button onclick="rotate(-45)">Rotar -45°</button>
+            </div>
+            
+            <div class="control-group">
+                <h3>📏 Escalado</h3>
+                <button onclick="scale(1.2, 1)">Escalar X +20%</button>
+                <button onclick="scale(0.8, 1)">Escalar X -20%</button>
+                <button onclick="scale(1, 1.2)">Escalar Y +20%</button>
+                <button onclick="scale(1, 0.8)">Escalar Y -20%</button>
+                <button onclick="scale(1.2, 1.2)">Escalar Ambos +20%</button>
+                <button onclick="scale(0.8, 0.8)">Escalar Ambos -20%</button>
+            </div>
+            
+            <div class="control-group">
+                <h3>🪞 Reflexion</h3>
+                <button onclick="reflect('x')">Reflejar sobre Eje X</button>
+                <button onclick="reflect('y')">Reflejar sobre Eje Y</button>
+                <button onclick="reflect('xy')">Reflejar sobre y=x</button>
+                <button onclick="reflect('origin')">Reflejar sobre el Origen</button>
+            </div>
+            
+            <button class="reset-btn" onclick="resetTransformations()">🔄 Deshacer Transformaciones</button>
+        </div>
+        
+        <div class="info">
+            <p><strong>Matriz Transformada Actual:</strong></p>
+            <div id="matrixDisplay" class="transform-display"></div>
+            <p><strong>Instrucciones:</strong> Haga click en los botones superiores para aplicar transformaciones lineares a la onda senoidal. La onda es tratada como un conjunto de puntos en 2D (x, y) donde las transformaciones son aplicadas usando multiplicacion de matrices.</p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Matriz transformada [a, b, c, d] representa:
+        // [a c]
+        // [b d]
+        let transformMatrix = [1, 0, 0, 1]; // Identity matrix
+        
+        
+        const originalPoints = [];
+        const numPoints = 200;
+        
+        // Genera los puntos senoidales originales
+        function generateOriginalPoints() {
+            originalPoints.length = 0;
+            for (let i = 0; i < numPoints; i++) {
+                const x = (i / numPoints) * 4 * Math.PI - 2 * Math.PI; // -2π a 2π
+                const y = Math.sin(x);
+                originalPoints.push([x, y]);
+            }
+        }
+        
+        // Aplicar transformaciones matriciales a un punto
+        function transformPoint(x, y) {
+            const [a, b, c, d] = transformMatrix;
+            return [
+                a * x + c * y,
+                b * x + d * y
+            ];
+        }
+        
+        // Convertir coordenadas matematicas en puntos en el plano
+        function toCanvas(x, y) {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const scale = 60; // Factor escalar para visualizacion
+            
+            return [
+                centerX + x * scale,
+                centerY - y * scale // Voltea eje y
+            ];
+        }
+        
+        // Dibuja la onda senoidal
+        function drawSineWave() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Dibuja cuadricula
+            drawGrid();
+            
+            // Dibuja ejes
+            drawAxes();
+            
+            // Transforma y dibuja la onda senoidal
+            ctx.beginPath();
+            ctx.strokeStyle = '#ff4444';
+            ctx.lineWidth = 3;
+            
+            for (let i = 0; i < originalPoints.length; i++) {
+                const [origX, origY] = originalPoints[i];
+                const [transX, transY] = transformPoint(origX, origY);
+                const [canvasX, canvasY] = toCanvas(transX, transY);
+                
+                if (i === 0) {
+                    ctx.moveTo(canvasX, canvasY);
+                } else {
+                    ctx.lineTo(canvasX, canvasY);
+                }
+            }
+            
+            ctx.stroke();
+            
+            // Dibujar la onda senoidal en gris como referencia
+            ctx.beginPath();
+            ctx.strokeStyle = '#cccccc';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            
+            for (let i = 0; i < originalPoints.length; i++) {
+                const [origX, origY] = originalPoints[i];
+                const [canvasX, canvasY] = toCanvas(origX, origY);
+                
+                if (i === 0) {
+                    ctx.moveTo(canvasX, canvasY);
+                } else {
+                    ctx.lineTo(canvasX, canvasY);
+                }
+            }
+            
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+        
+        // Dibujar cuadricula
+        function drawGrid() {
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const scale = 60;
+            
+            // Cuadricula vertical
+            for (let x = -10; x <= 10; x++) {
+                const canvasX = centerX + x * scale;
+                if (canvasX >= 0 && canvasX <= canvas.width) {
+                    ctx.beginPath();
+                    ctx.moveTo(canvasX, 0);
+                    ctx.lineTo(canvasX, canvas.height);
+                    ctx.stroke();
+                }
+            }
+            
+            // Cuadricula horizontal
+            for (let y = -5; y <= 5; y++) {
+                const canvasY = centerY - y * scale;
+                if (canvasY >= 0 && canvasY <= canvas.height) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, canvasY);
+                    ctx.lineTo(canvas.width, canvasY);
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        // Dibujar coordenadas en los ejes
+        function drawAxes() {
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 2;
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            // Eje x
+            ctx.beginPath();
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(canvas.width, centerY);
+            ctx.stroke();
+            
+            // Eje y
+            ctx.beginPath();
+            ctx.moveTo(centerX, 0);
+            ctx.lineTo(centerX, canvas.height);
+            ctx.stroke();
+        }
+        
+        // Multiplicacion matricial 2x2
+        function multiplyMatrix(m1, m2) {
+            const [a1, b1, c1, d1] = m1;
+            const [a2, b2, c2, d2] = m2;
+            
+            return [
+                a1 * a2 + c1 * b2,  // new a
+                b1 * a2 + d1 * b2,  // new b
+                a1 * c2 + c1 * d2,  // new c
+                b1 * c2 + d1 * d2   // new d
+            ];
+        }
+        
+        // Rotacion
+        function rotate(degrees) {
+            const radians = degrees * Math.PI / 180;
+            const cos = Math.cos(radians);
+            const sin = Math.sin(radians);
+            
+            const rotationMatrix = [cos, sin, -sin, cos];
+            transformMatrix = multiplyMatrix(transformMatrix, rotationMatrix);
+            
+            drawSineWave();
+            updateMatrixDisplay();
+        }
+        
+        // Escalar 
+        function scale(sx, sy) {
+            const scalingMatrix = [sx, 0, 0, sy];
+            transformMatrix = multiplyMatrix(transformMatrix, scalingMatrix);
+            
+            drawSineWave();
+            updateMatrixDisplay();
+        }
+        
+        // Reflejar
+        function reflect(type) {
+            let reflectionMatrix;
+            
+            switch (type) {
+                case 'x': // Reflect over X-axis
+                    reflectionMatrix = [1, 0, 0, -1];
+                    break;
+                case 'y': // Reflect over Y-axis
+                    reflectionMatrix = [-1, 0, 0, 1];
+                    break;
+                case 'xy': // Reflect over line y = x
+                    reflectionMatrix = [0, 1, 1, 0];
+                    break;
+                case 'origin': // Reflect through origin
+                    reflectionMatrix = [-1, 0, 0, -1];
+                    break;
+            }
+            
+            transformMatrix = multiplyMatrix(transformMatrix, reflectionMatrix);
+            
+            drawSineWave();
+            updateMatrixDisplay();
+        }
+        
+        // Reiniciar 
+        function resetTransformations() {
+            transformMatrix = [1, 0, 0, 1]; // Identity matrix
+            drawSineWave();
+            updateMatrixDisplay();
+        }
+        
+        // Actualizar la matriz mostrada
+        function updateMatrixDisplay() {
+            const [a, b, c, d] = transformMatrix;
+            const matrixHtml = `
+                [${a.toFixed(3)} ${c.toFixed(3)}]<br>
+                [${b.toFixed(3)} ${d.toFixed(3)}]
+            `;
+            document.getElementById('matrixDisplay').innerHTML = matrixHtml;
+        }
+        
+        // Inicializar
+        generateOriginalPoints();
+        drawSineWave();
+        updateMatrixDisplay();
+    </script>
+</body>
+</html>
